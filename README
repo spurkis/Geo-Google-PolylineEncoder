@@ -1,0 +1,133 @@
+NAME
+    Geo::Google::PolylineEncoder - encode lat/lngs to Google Maps Polylines
+
+SYNOPSIS
+      use Geo::Google::PolylineEncoder;
+
+      my $points = [
+                    { lat => 38.5, lon => -120.2 },
+                    { lat => 40.7, lon => -120.95 },
+                    { lat => 43.252, lon => -126.453 },
+                   ];
+      my $encoder = Geo::Google::PolylineEncoder->new;
+      my $eline   = $encoder->encode( $points );
+      print $eline->{num_levels};  # 18
+      print $eline->{zoom_factor}; # 2
+      print $eline->{points};      # _p~iF~ps|U_ulLnnqC_mqNvxq`@
+      print $eline->{levels};      # POP
+
+      # in Javascript, assuming eline was encoded as JSON:
+      # ... load GMap2 ...
+      var opts = {
+        points: eline.points,
+        levels: eline.levels,
+        numLevels: eline.num_levels,
+        zoomFactor: eline.zoom_factor,
+      };
+      var line = GPolyline.fromEncoded( opts );
+
+DESCRIPTION
+    This module encodes a list of lat/lon points representing a polyline
+    into a format for use with Google Maps. This format is described here:
+
+    <http://code.google.com/apis/maps/documentation/polylinealgorithm.html>
+
+    The module is a port of Mark McClure's "PolylineEncoder.js" with some
+    minor tweaks. The original can be found here:
+
+    <http://facstaff.unca.edu/mcmcclur/GoogleMaps/EncodePolyline/>
+
+CONSTRUCTOR & ACCESSORS
+    new( [%args] )
+        Create a new encoder. Arguments are optional and correspond to the
+        accessor with the same name: "num_levels", "zoom_factor",
+        "visible_threshold", "force_endpoints".
+
+        Note: there's nothing stopping you from setting these properties
+        each time you "encode" a polyline.
+
+    num_levels
+        How many different levels of magnification the polyline has.
+        Default: 18.
+
+    zoom_factor
+        The change in magnification between those levels (see "num_levels").
+        Default: 2.
+
+    visible_threshold
+        Indicates the length of a barely visible object at the highest zoom
+        level. Default: 0.00001.
+
+    force_endpoints
+        Indicates whether or not the endpoints should be visible at all zoom
+        levels. force_endpoints is. Probably should stay true regardless.
+        Default: 1=true.
+
+    escape_encoded_points
+        Indicates whether or not the encoded points should have escape
+        characters escaped, eg:
+
+          $points =~ s/\\/\\\\/g;
+
+        This is useful if you'll be evalling the resulting strings, or
+        copying them into a static document.
+
+        Warning: don't turn this on if you'll be passing the encoded points
+        straight on to your application, or you'll get unexpected results
+        (ie: lines that start out right, but end up horribly wrong). It may
+        even crash your browser.
+
+        Default: 0=false.
+
+METHODS
+    encode( \@points );
+        Encode the points into a string for use with Google Maps
+        "GPolyline.fromEncoded" using a variant of the Douglas-Peucker
+        algorithm and the Polyline encoding algorithm defined by Google.
+
+        Expects a reference to a @points array ala:
+
+          [
+           { lat => 38.5, lon => -120.2 },
+           { lat => 40.7, lon => -120.95 },
+           { lat => 43.252, lon => -126.453 },
+          ];
+
+        Returns a hashref containing:
+
+          {
+           points => 'encoded points string',
+           levels => 'encoded levels string',
+           num_levels => int($num_levels),
+           zoom_factor => int($zoom_factor),
+          };
+
+        You can then use the JSON modules (or XML, or whatever) to pass the
+        encoded values to your Javascript application for use there.
+
+TODO
+    Benchmarking, & maybe bring distance calcs in-line as Joel Rosenberg
+    did:
+    <http://facstaff.unca.edu/mcmcclur/GoogleMaps/EncodePolyline/gmap_polyli
+    ne_encoder.rb.txt>
+
+AUTHOR
+    Steve Purkis <spurkis@cpan.org>
+
+    Ported from Mark McClure's "PolylineEncoder.js" which can be found here:
+    <http://facstaff.unca.edu/mcmcclur/GoogleMaps/EncodePolyline/PolylineEnc
+    oder.html>
+
+    Some encoding ideas borrowed from Geo::Google.
+
+COPYRIGHT
+    Copyright (c) 2008 Steve Purkis. Released under the same terms as Perl
+    itself.
+
+SEE ALSO
+    <http://code.google.com/apis/maps/documentation/polylinealgorithm.html>,
+    <http://facstaff.unca.edu/mcmcclur/GoogleMaps/EncodePolyline/PolylineEnc
+    oder.html> (JavaScript implementation),
+    <http://www.usnaviguide.com/google-encode.htm> (similar implementation
+    in perl), Geo::Google, JSON
+
