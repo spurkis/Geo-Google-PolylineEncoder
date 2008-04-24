@@ -6,7 +6,5 @@ MANIFEST			This list of files
 META.yml
 README
 t/01_basic.t
-t/data/20061226.gpx
-t/data/20061227.gpx
 t/data/20061228.gpx
 t/data/MtMitchell.gpx
