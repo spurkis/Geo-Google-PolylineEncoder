@@ -477,7 +477,7 @@ L<http://facstaff.unca.edu/mcmcclur/GoogleMaps/EncodePolyline/gmap_polyline_enco
 Steve Purkis <spurkis@cpan.org>
 
 Ported from Mark McClure's C<PolylineEncoder.js> which can be found here:
-L<http://facstaff.unca.edu/mcmcclur/GoogleMaps/EncodePolyline/PolylineEncoder.html>
+L<http://facstaff.unca.edu/mcmcclur/GoogleMaps/EncodePolyline/PolylineEncoderClass.html>
 
 Some encoding ideas borrowed from L<Geo::Google>.
 
@@ -489,7 +489,7 @@ Released under the same terms as Perl itself.
 =head1 SEE ALSO
 
 L<http://code.google.com/apis/maps/documentation/polylinealgorithm.html>,
-L<http://facstaff.unca.edu/mcmcclur/GoogleMaps/EncodePolyline/PolylineEncoder.html>
+L<http://facstaff.unca.edu/mcmcclur/GoogleMaps/EncodePolyline/PolylineEncoderClass.html>
 (JavaScript implementation),
 L<http://www.usnaviguide.com/google-encode.htm> (similar implementation in perl),
 L<Geo::Google>,
