@@ -3,5 +3,11 @@ Revision history for 'Test-Approx' Perl module
 
 All changes by Steve Purkis, unless otherwise noted.
 
+0.03
+    +	added missing dep on accessors [reported by CPAN Testers]
+
+0.02
+    +	cleaned up & released
+
 0.01
     +	created Thurs Apr 24 2008

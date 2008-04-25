@@ -27,6 +27,7 @@ my $build = Module::Build->new
    license            => 'perl',
    requires           => {
 			  'perl'          => '5.6.0',
+			  'accessors'     => '0.02',
 			  'Geo::Gpx'      => '0.01',
 		         },
    build_requires     => {
