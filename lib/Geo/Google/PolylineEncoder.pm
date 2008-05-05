@@ -45,7 +45,7 @@ use constant defaults => {
 			  escape_encoded_points => 0,
 			  visible_threshold => 0.00001,
 			 };
-our $VERSION = 0.03;
+our $VERSION = 0.04;
 
 # The constructor
 sub new {
