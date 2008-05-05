@@ -36,7 +36,8 @@ use strict;
 use warnings;
 
 use accessors qw(num_levels zoom_factor visible_threshold force_endpoints
-		 zoom_level_breaks escape_encoded_points);
+		 zoom_level_breaks escape_encoded_points
+		 points dists max_dist encoded_points encoded_levels );
 use constant defaults => {
 			  num_levels  => 18,
 			  zoom_factor => 2,
@@ -81,18 +82,58 @@ sub init_zoom_level_breaks {
     $self->zoom_level_breaks(\@zoom_level_breaks);
 }
 
+sub reset_encoder {
+    my $self = shift;
+    $self->points([])->dists([])->max_dist(0)->encoded_points('')->encoded_levels('');
+    # Note: calculate zoom level breaks here in case num_levels, etc. have
+    # changed between encodes:
+    $self->init_zoom_level_breaks;
+}
+
+sub set_points {
+    my ($self, $points) = @_;
+
+    # For the moment, just stick the points we were given into $self->points:
+    return $self->points( $points );
+
+    # TODO: make a copy of the points we were given, and do some clever logic
+    # ala:
+    my @points;
+    if (UNIVERSAL::isa($points->[0], 'HASH')) {
+	my @keys = keys %{ $points->[0] };
+	my ($lat_key) = grep( /^lat$/i, @keys );
+	my ($lon_key) = grep( /^(?:lon)|(?:lng)$/i, @keys );
+	@points = map { [$_->{$lat_key}, $_->{$lon_key}] } @$points;
+    } elsif (UNIVERSAL::isa($points->[0], 'ARRAY')) {
+	if ($self->points_in_geographic_order) {
+	    while (my ($lon, $lat) = splice( @$points, 0, 2 )) {
+		push @points, [$lat, $lon];
+	    }
+	} else {
+	    while (my ($lat, $lon) = splice( @$points, 0, 2 )) {
+		push @points, [$lat, $lon];
+	    }
+	}
+    } else {
+	die "don't know how to handle points = $points";
+    }
+
+    return $self;
+}
+
 # The main entry point
 sub encode {
     my ($self, $points) = @_;
 
-    # calculate zoom level breaks here in case num_levels, etc. have changed
-    $self->init_zoom_level_breaks;
-
-    my ($dists, $abs_max_dist) = $self->calculate_distances( $points );
+    $self->reset_encoder
+         ->set_points( $points )
+	 ->calculate_distances
+	 ->encode_points
+	 ->encode_levels;
 
     my $eline = {
-		 points => $self->encode_points($points, $dists),
-		 levels => $self->encode_levels($points, $dists, $abs_max_dist),
+		 points => $self->encoded_points,
+		 levels => $self->encoded_levels,
 		 num_levels => $self->num_levels,
 		 zoom_factor => $self->zoom_factor,
 		};
@@ -113,14 +154,15 @@ sub encode {
 # Note: this function has been optimized and is quite long, sorry.
 # Any further optimizations should probably be done in XS.
 sub calculate_distances {
-    my ($self, $points) = @_;
+    my $self = shift;
+    my $points = $self->points;
 
     my @dists;
-    my $abs_max_dist = 0;
+    my $max_dist = 0;
 
     if (@$points <= 2) {
 	# no point doing distance calcs:
-	return (\@dists, $abs_max_dist);
+	return $self->dists( \@dists )->max_dist( $max_dist );
     }
 
     # Iterate through all the points, and calculate their dists
@@ -147,8 +189,8 @@ sub calculate_distances {
 	# Cache the deltas in x/y for calcs later:
 	my ($Bx_minus_Ax, $By_minus_Ay) = ($Bx - $Ax, $By - $Ay);
 
-	my $max_dist = 0;
-	my $max_dist_idx;
+	my $current_max_dist = 0;
+	my $current_max_dist_idx;
 	for (my $i = $current->[0] + 1; $i < $current->[1]; $i++) {
 	    # Get the current point:
 	    my $P = $points->[$i];
@@ -239,11 +281,11 @@ sub calculate_distances {
 	    }
 
 	    # See if this distance is the greatest for this segment so far:
-	    if ($dist > $max_dist) {
-		$max_dist = $dist;
-		$max_dist_idx = $i;
-		if ($max_dist > $abs_max_dist) {
-		    $abs_max_dist = $max_dist;
+	    if ($dist > $current_max_dist) {
+		$current_max_dist = $dist;
+		$current_max_dist_idx = $i;
+		if ($current_max_dist > $max_dist) {
+		    $max_dist = $current_max_dist;
 		}
 	    }
 	}
@@ -251,15 +293,15 @@ sub calculate_distances {
 	# If the point that had the greatest distance from the line seg is
 	# also greater than our threshold, process again using it as a new
 	# start/end point for the line.
-	if ($max_dist > $self->visible_threshold) {
+	if ($current_max_dist > $self->visible_threshold) {
 	    # store this distance - we'll use it later when creating zoom values
-	    $dists[$max_dist_idx] = $max_dist;
-	    push @stack, [$current->[0], $max_dist_idx];
-	    push @stack, [$max_dist_idx, $current->[1]];
+	    $dists[$current_max_dist_idx] = $current_max_dist;
+	    push @stack, [$current->[0], $current_max_dist_idx];
+	    push @stack, [$current_max_dist_idx, $current->[1]];
 	}
     }
 
-    return (\@dists, $abs_max_dist);
+    $self->dists( \@dists )->max_dist( $max_dist );
 } # calculate_distances
 
 
@@ -268,7 +310,9 @@ sub calculate_distances {
 # The key difference is that not all points are encoded,
 # since some were eliminated by Douglas-Peucker.
 sub encode_points {
-    my ($self, $points, $dists) = @_;
+    my $self = shift;
+    my $points = $self->points;
+    my $dists  = $self->dists;
 
     my $encoded_points = "";
     my $oldencoded_points = "";
@@ -291,7 +335,7 @@ sub encode_points {
 	}
     }
 
-    return $encoded_points;
+    $self->encoded_points( $encoded_points );
 }
 
 
@@ -299,33 +343,37 @@ sub encode_points {
 # Like encode_points, we ignore points whose distance (in dists) is undefined.
 # See http://code.google.com/apis/maps/documentation/polylinealgorithm.html
 sub encode_levels {
-    my ($self, $points, $dists, $abs_max_dist) = @_;
+    my $self = shift;
+    my $points = $self->points;
+    my $dists  = $self->dists;
+    my $max_dist = $self->max_dist;
 
     # Cache for performance:
     my $num_levels = $self->num_levels;
+    my $num_levels_minus_1 = $num_levels - 1;
 
     my $encoded_levels = "";
 
     if ($self->force_endpoints) {
-	$encoded_levels .= $self->encode_number($num_levels - 1);
+	$encoded_levels .= $self->encode_number($num_levels_minus_1);
     } else {
-	$encoded_levels .= $self->encode_number($num_levels - $self->compute_level($abs_max_dist) - 1);
+	$encoded_levels .= $self->encode_number($num_levels_minus_1 - $self->compute_level($max_dist));
     }
 
     # Note: skip the first & last point:
     for my $i (1 .. scalar(@$points) - 2) {
 	if (defined $dists->[$i]) {
-	    $encoded_levels .= $self->encode_number($num_levels - $self->compute_level($dists->[$i]) - 1);
+	    $encoded_levels .= $self->encode_number($num_levels_minus_1 - $self->compute_level($dists->[$i]));
 	}
     }
 
     if ($self->force_endpoints) {
-	$encoded_levels .= $self->encode_number($num_levels - 1);
+	$encoded_levels .= $self->encode_number($num_levels_minus_1);
     } else {
-	$encoded_levels .= $self->encode_number($num_levels - $self->compute_level($abs_max_dist) - 1);
+	$encoded_levels .= $self->encode_number($num_levels_minus_1 - $self->compute_level($max_dist));
     }
 
-    return $encoded_levels;
+    $self->encoded_levels( $encoded_levels );
 }
 
 
