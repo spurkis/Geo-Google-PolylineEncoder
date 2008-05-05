@@ -3,6 +3,16 @@ Revision history for 'Test-Approx' Perl module
 
 All changes by Steve Purkis, unless otherwise noted.
 
+0.04
+    +	Profiled, benchmarked & optimized.  Now almost twice as fast on an AMD
+	Opteron 2GHz CPU.  Got two main performance fixes in:
+	1. Brought distance() calcs into 1 function & cached lots of stuff.
+	2. Brought compute_level() calcs inline.
+    *	Calculate zoom level breaks on encode() in case its deps have changed.
+    *	Fixed a bad bug in the distance calculation (it would always find that
+	'I' was interior to line seg AB, even when it was not, resulting in
+	incorrect distance calcs!)
+
 0.03
     +	added missing dep on accessors [reported by CPAN Testers]
 
