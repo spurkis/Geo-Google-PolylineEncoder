@@ -93,6 +93,9 @@ sub reset_encoder {
 sub set_points {
     my ($self, $points) = @_;
 
+    $points->[0]->{first} = 1;
+    $points->[-1]->{last} = 1;
+
     # For the moment, just stick the points we were given into $self->points:
     return $self->points( $points );
 
@@ -351,6 +354,8 @@ sub encode_levels {
     # Cache for performance:
     my $num_levels = $self->num_levels;
     my $num_levels_minus_1 = $num_levels - 1;
+    my $visible_threshold = $self->visible_threshold;
+    my $zoom_level_breaks = $self->zoom_level_breaks;
 
     my $encoded_levels = "";
 
@@ -360,10 +365,26 @@ sub encode_levels {
 	$encoded_levels .= $self->encode_number($num_levels_minus_1 - $self->compute_level($max_dist));
     }
 
+
     # Note: skip the first & last point:
     for my $i (1 .. scalar(@$points) - 2) {
-	if (defined $dists->[$i]) {
-	    $encoded_levels .= $self->encode_number($num_levels_minus_1 - $self->compute_level($dists->[$i]));
+	my $dist = $dists->[$i];
+	if (defined $dist) {
+	    # Note: brought compute_level in-line as it was performing *really* slowly
+	    #
+	    # This computes the appropriate zoom level of a point in terms of it's
+	    # distance from the relevant segment in the DP algorithm.  Could be done
+	    # in terms of a logarithm, but this approach makes it a bit easier to
+	    # ensure that the level is not too large.
+	    #my $level = $self->compute_level($dist);
+	    my $level = 0;
+	    if ($dist > $visible_threshold) {
+		while ($dist < $zoom_level_breaks->[$level]) {
+		    $level++;
+		}
+	    }
+
+	    $encoded_levels .= $self->encode_number($num_levels_minus_1 - $level);
 	}
     }
 
@@ -377,21 +398,25 @@ sub encode_levels {
 }
 
 
-# This computes the appropriate zoom level of a point in terms of it's 
+# This computes the appropriate zoom level of a point in terms of it's
 # distance from the relevant segment in the DP algorithm.  Could be done
 # in terms of a logarithm, but this approach makes it a bit easier to
 # ensure that the level is not too large.
 sub compute_level {
-    my ($self, $dd) = @_;
+    my ($self, $dist) = @_;
 
-    my $lev;
-    if($dd > $self->visible_threshold) {
-	$lev = 0;
-	while ($dd < $self->zoom_level_breaks->[$lev]) {
-	    $lev++;
+    # Cache for performance:
+    my $zoom_level_breaks = $self->zoom_level_breaks;
+
+    my $level;
+    if ($dist > $self->visible_threshold) {
+	$level = 0;
+	while ($dist < $zoom_level_breaks->[$level]) {
+	    $level++;
 	}
-	return $lev;
     }
+
+    return $level;
 }
 
 # Based on the official google example
