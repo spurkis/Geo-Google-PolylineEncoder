@@ -144,6 +144,9 @@ sub calculate_distances {
 	my $seg_length_squared = (($Bx - $Ax) ** 2 + ($By - $Ay) ** 2);
 	my $seg_length = sqrt($seg_length_squared);
 
+	# Cache the deltas in x/y for calcs later:
+	my ($Bx_minus_Ax, $By_minus_Ay) = ($Bx - $Ax, $By - $Ay);
+
 	my $max_dist = 0;
 	my $max_dist_idx;
 	for (my $i = $current->[0] + 1; $i < $current->[1]; $i++) {
@@ -221,8 +224,8 @@ sub calculate_distances {
 
 		if ($r >= 0.0 || $r <= 1.0) {
 		    # The perpendicular point $s intersects the line:
-		    my $s = (($Ay - $Py) * ($Bx - $Ax) -
-			     ($Ax - $Px)*($By - $Ay)) / $seg_length_squared;
+		    my $s = (($Ay - $Py) * $Bx_minus_Ax -
+			     ($Ax - $Px) * $By_minus_Ay) / $seg_length_squared;
 		    $dist = abs($s) * $seg_length;
 		} else {
 		    # The point is closest to an endpoint. Find out which one:
