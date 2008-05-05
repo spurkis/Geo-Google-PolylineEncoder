@@ -158,8 +158,7 @@ sub calculate_distances {
 	    my ($Py, $Px) = ($P->{lat}, $P->{lon});
 
 	    # Compute the distance between point $P and line segment [$A, $B].
-	    # Maths borrowed from GMapPolylineEncoder.rb by Joel Rosenberg,
-	    # and Philip Nicoletti (see below).
+	    # Maths borrowed from Philip Nicoletti (see below).
 	    #
 	    # Note: we approximate distance using flat (Euclidian) geometry,
 	    # rather than trying to bring the curvature of the earth into it.
@@ -222,17 +221,20 @@ sub calculate_distances {
 		my $r = (($Px - $Ax) * ($Bx - $Ax) +
 			 ($Py - $Ay) * ($By - $Ay)) / $seg_length_squared;
 
-		if ($r >= 0.0 || $r <= 1.0) {
-		    # The perpendicular point $s intersects the line:
+		if ($r <= 0.0) {
+		    # Either I = A, or I is on the backward extension of A-B,
+		    # so find dist between $P & $A:
+		    $dist = sqrt(($Ay - $Py) ** 2 + ($Ax - $Px) ** 2);
+		} elsif ($r >= 1.0) {
+		    # Either I = B, or I is on the forward extension of A-B,
+		    # so find dist between $P & $B:
+		    $dist = sqrt(($By - $Py) ** 2 + ($Bx - $Px) ** 2);
+		} else {
+		    # I is interior to A-B, so find $s, and use it to find the
+		    # dist between $P and A-B:
 		    my $s = (($Ay - $Py) * $Bx_minus_Ax -
 			     ($Ax - $Px) * $By_minus_Ay) / $seg_length_squared;
 		    $dist = abs($s) * $seg_length;
-		} else {
-		    # The point is closest to an endpoint. Find out which one:
-		    my $dist1 = ($Px - $Ax)**2 + ($Py - $Ay)**2;
-		    my $dist2 = ($Px - $Bx)**2 + ($Py - $By)**2;
-		    # Note: avoid doing two sqrts:
-		    $dist = ($dist1 < $dist2) ? sqrt($dist1) : sqrt($dist2);
 		}
 	    }
 
