@@ -64,6 +64,10 @@ sub init {
     foreach my $attr (keys %args) {
 	$self->$attr($args{$attr});
     }
+}
+
+sub init_zoom_level_breaks {
+    my $self = shift;
 
     my @zoom_level_breaks;
     for my $i (1 .. $self->num_levels) {
@@ -81,6 +85,9 @@ sub init {
 # distances are then easily converted to zoom levels.
 sub encode {
     my ($self, $points) = @_;
+
+    # calculate zoom level breaks here in case num_levels, etc. have changed
+    $self->init_zoom_level_breaks;
 
     my @stack;
     my @dists;

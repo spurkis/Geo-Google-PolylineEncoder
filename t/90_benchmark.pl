@@ -35,7 +35,7 @@ while (my $line = <$fh>) {
 
 
 my $encode_sub = sub {
-    print "encoding...\n";
+    diag( 'encoding...' ); # this shouldn't affect stats too much
     my $encoder = Geo::Google::PolylineEncoder->new(zoom_factor => 2, num_levels => 18);
     my $eline   = $encoder->encode( \@points );
 };
