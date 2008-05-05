@@ -1,6 +1,6 @@
 =head1 NAME
 
-Geo::Google::PolylineEncoder - encode lat/lngs to Google Maps Polylines
+Geo::Google::PolylineEncoder - encode lat/lons to Google Maps Polylines
 
 =head1 SYNOPSIS
 
@@ -471,6 +471,11 @@ values to your Javascript application for use there.
 
 Benchmarking, & maybe bring distance calcs in-line as Joel Rosenberg did:
 L<http://facstaff.unca.edu/mcmcclur/GoogleMaps/EncodePolyline/gmap_polyline_encoder.rb.txt>
+
+As Lee Goddard suggests, accept points as arrays in inputs to encode(), eg:
+
+ my $points = [ [$lat1, $lon1], ... ]; # like this
+ my $points = [ $lat1, $lon1, $lat2, $lon2 ]; # or this
 
 =head1 AUTHOR
 
