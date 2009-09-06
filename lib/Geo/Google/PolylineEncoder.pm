@@ -45,7 +45,27 @@ use constant defaults => {
 			  escape_encoded_points => 0,
 			  visible_threshold => 0.00001,
 			 };
-our $VERSION = 0.04;
+our $VERSION = 0.05;
+
+# Use POSIX::floor if available, otherwise use sprintf(%8.0f ...).
+{
+    eval 'require POSIX';
+    if ($@) {
+	# Note: use sprintf() rather than int() (see perldoc -f int), though
+	# there's not much in it and the sprintf approach ends up doing more
+	# of a round() than a floor() in some cases:
+	#   floor = -30   num=-30 *int=-29  1e5=-30  %3.5f=-0.00030  orig=-0.000300000000009959
+	#   floor = 119  *num=120  int=119  1e5=120  %3.5f=0.00120   orig=0.0011999999999972
+	sub floor { sprintf('%8.0f', $_[0])+0 }
+	#warn "using sprintf as floor";
+    } else {
+	no strict 'refs';
+	no warnings;
+	*floor = \&POSIX::floor;
+	#warn "using POSIX::floor";
+    }
+}
+
 
 # The constructor
 sub new {
@@ -439,9 +459,10 @@ sub encode_signed_number {
     # We don't use floor() to avoid a dependency on POSIX
 
     # do this in a series of steps so we can see what's going on in the debugger:
-    my $num3_5 = sprintf('%3.5f', $orig_num)+0;
+    my $num3_5  = sprintf('%3.5f', $orig_num)+0;
     my $num_1e5 = $num3_5 * 1e5;
-    my $num = sprintf('%8.0f', $num_1e5)+0;
+    my $num     = floor($num_1e5);
+    my $is_negative = $num < 0;
 
     # my $int = int($num_1e5);
     # my $floor = floor($num_1e5);
@@ -457,7 +478,7 @@ sub encode_signed_number {
     $num = $num << 1;
 
     # If the original decimal value was negative, invert this encoding:
-    if ($orig_num < 0) {
+    if ($is_negative) {
 	$num = ~$num;
     }
 

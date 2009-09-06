@@ -3,6 +3,12 @@ Revision history for 'Test-Approx' Perl module
 
 All changes by Steve Purkis, unless otherwise noted.
 
+0.05
+    +	Use POSIX::floor if available, otherwise use sprintf(%8.0f ...)
+    +	RT #49327: patch for small negative numbers [Slaven Rezić]
+    +	RT #46337: added test, not yet fixed. [Reported by Joe Navratil]
+    +	RT #49323, #36181: Geo::Gpx is now a build_requires & correct version
+
 0.04
     +	Profiled, benchmarked & optimized.  Now almost twice as fast on an AMD
 	Opteron 2GHz CPU.  Got two main performance fixes in:

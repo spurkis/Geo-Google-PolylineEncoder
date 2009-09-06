@@ -28,12 +28,12 @@ my $build = Module::Build->new
    requires           => {
 			  'perl'          => '5.6.0',
 			  'accessors'     => '0.02',
-			  'Geo::Gpx'      => '0.01',
 		         },
    build_requires     => {
 			  'Test::More'    => '0.01',
 			  'Module::Build' => '0.20',
 			  'IO::File'      => '0.01',
+			  'Geo::Gpx'      => '0.21',
 		         },
    build_reccomends   => {
 			  'Test::Approx'  => '0.01',
