@@ -33,10 +33,10 @@ my $build = Module::Build->new
 			  'Test::More'    => '0.01',
 			  'Module::Build' => '0.20',
 			  'IO::File'      => '0.01',
-			  'Geo::Gpx'      => '0.21',
 		         },
    build_reccomends   => {
 			  'Test::Approx'  => '0.01',
+			  'Geo::Gpx'      => '0.21',
 		         },
 
   );

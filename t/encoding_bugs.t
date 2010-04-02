@@ -6,8 +6,6 @@ use lib 't/lib';
 
 use Test::More 'no_plan';
 
-use IO::File;
-use Geo::Gpx;
 use_ok( 'Geo::Google::PolylineEncoder' );
 
 # Test - RT #46337 Truncated levels & points?

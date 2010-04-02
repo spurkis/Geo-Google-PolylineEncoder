@@ -6,8 +6,6 @@ use lib 't/lib';
 
 use Test::More 'no_plan';
 
-use IO::File;
-use Geo::Gpx;
 use_ok( 'Geo::Google::PolylineEncoder' );
 
 # RT #49327
@@ -74,6 +72,7 @@ use_ok( 'Geo::Google::PolylineEncoder' );
 
 # Test 2 - polyline with 12 points that kept on encoding incorrectly because I
 # set escape_encoded_line => 1 by default.  This naturally screws things up...
+# Also check that visible_threshold has desired effect
 {
     my $points = [
 		  { lat => 53.926935, lon => 10.244442 },
@@ -98,15 +97,9 @@ use_ok( 'Geo::Google::PolylineEncoder' );
     is( $eline->{points}, 'krchIwzo}@CqKa@}KaAwKwBwOgFw\\mD}SsCgO{Je`@_BsJ', 'ex2 points' ); # from google
     is( $eline->{levels}, 'PADAEA@CBP', 'ex2 levels' );
 
-
     $eline = $encoder->visible_threshold( 0.00000001 )->encode( $points );
     is( $eline->{points}, 'krchIwzo}@CqKa@}KaAwKwBwOyAuJmCaQmD}SsCgOgDuMsEoQ_BsJ', 'ex2 points' ); # from google
-#                         'krchIwzo}@EqKa@}KaAuKuByOgFw\\mD}SsCeO{Je`@_BsJ', 'ex2 points' );
-#                         'krchIwzo}@CqKa@}KaAwKwBwOyAuJmCaQmD}SsCgOgDuMsEoQ_BsJ';
-#                         'krchIwzo}@CqKa@}KaAwKwBwOyAuJmCaQmD}SsCgOgDuMsEoQ_BsJ';
-    is( $eline->{levels}, 'PADAEA@CBP', 'ex2 levels' );
+    is( $eline->{levels}, 'PKMKOEKJMBLP', 'ex2 levels' );
 }
 
-#PADAEA@CBP
-#BBBBBBBBBBBB
 __END__

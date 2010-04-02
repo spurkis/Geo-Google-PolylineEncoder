@@ -4,10 +4,16 @@ use warnings;
 use lib 'lib';
 use lib 't/lib';
 
-use Test::More 'no_plan';
+use Test::More;
+
+BEGIN {
+    eval "use Geo::Gpx";
+    plan skip_all => 'Geo::Gpx not available' if $@;
+    plan 'no_plan';
+}
 
 use IO::File;
-use Geo::Gpx;
+
 use_ok( 'Geo::Google::PolylineEncoder' );
 
 # Tests 4 & 5
