@@ -93,9 +93,6 @@ sub reset_encoder {
 sub set_points {
     my ($self, $points) = @_;
 
-    $points->[0]->{first} = 1;
-    $points->[-1]->{last} = 1;
-
     # For the moment, just stick the points we were given into $self->points:
     return $self->points( $points );
 
@@ -455,19 +452,24 @@ sub encode_signed_number {
     # RT 49327: the signedness has to be determined *after* rounding
     my $is_negative = $num < 0;
 
-    # 3. Convert the decimal value to binary.  Note that a negative value must
-    # be calculated using its two's complement by inverting the binary value
-    # and adding one to the result.
+    {
+	# 3. Convert the decimal value to binary.  Note that a negative value
+	# must be calculated using its two's complement by inverting the
+	# binary value and adding one to the result.
 
-    # (perl ints are already manipulatable in binary, so do nothing)
+	# Note: perl ints are already manipulatable in binary, but not always
+	# treated as signed ints - this can cause weirdness with bitwise
+	# operators... `perldoc integer` for more info.
+	use integer; # treat bitwise operands as signed
 
-    # 4. Left-shift the binary value one bit:
-    $num = $num << 1;
+	# 4. Left-shift the binary value one bit:
+	$num = $num << 1;
 
-    # 5. If the original decimal value is negative, invert this encoding:
-    # (see note on RT 49327 above)
-    if ($is_negative) {
-	$num = ~$num;
+	# 5. If the original decimal value is negative, invert this encoding:
+	# (see note on RT 49327 above)
+	if ($is_negative) {
+	    $num = ~$num;
+	}
     }
 
     return $self->encode_number($num);
@@ -477,6 +479,7 @@ sub encode_signed_number {
 # http://code.google.com/apis/maps/documentation/include/polyline.js
 sub encode_number {
     my ($self, $num) = @_;
+    no integer; # treat bitwise operands as unsigned
 
     # 6. Break the binary value out into 5-bit chunks (starting from the right hand side):
     # 7. Place the 5-bit chunks into reverse order:
@@ -487,14 +490,75 @@ sub encode_number {
     my $encodeString = "";
     while ($num >= 0x20) {
 	my $nextValue = (0x20 | ($num & 0x1f)) + 63;
-	$encodeString .= chr($nextValue);
+	$encodeString .= chr( $nextValue );
 	$num >>= 5;
     }
 
     my $finalValue = $num + 63;
-    $encodeString .= chr($finalValue);
+    $encodeString .= chr( $finalValue );
 
     return $encodeString;
+}
+
+
+# Decode an encoded polyline into a list of lat/lng tuples.
+# adapted from http://code.google.com/apis/maps/documentation/include/polyline.js
+sub decode_points {
+    my ($class, $encoded) = @_;
+
+    my $len = length( $encoded );
+    my @array;
+
+    my $index = 0;
+    my $lat = 0;
+    my $lon = 0;
+
+    while ($index < $len) {
+	{
+	    use integer; # treat bitwise operands as signed
+	    my $b;
+	    my $shift = 0;
+	    my $result = 0;
+	    do {
+		$b = ord( substr( $encoded, $index++, 1 ) ) - 63;
+		$result |= ($b & 0x1f) << $shift;
+		$shift += 5;
+	    } while ($b >= 0x20);
+	    my $dlat = (($result & 1) ? ~($result >> 1) : ($result >> 1));
+	    $lat += $dlat;
+
+	    # cut-n-paste to improve performance?
+	    $shift = 0;
+	    $result = 0;
+	    do {
+		$b = ord( substr( $encoded, $index++, 1 ) ) - 63;
+		$result |= ($b & 0x1f) << $shift;
+		$shift += 5;
+	    } while ($b >= 0x20);
+	    my $dlon = (($result & 1) ? ~($result >> 1) : ($result >> 1));
+	    $lon += $dlon;
+	}
+
+	push @array, { lat => $lat * 1e-5, lon => $lon * 1e-5 };
+    }
+
+    return \@array;
+}
+
+# Decode an encoded levels string into a list of levels.
+# adapted from http://code.google.com/apis/maps/documentation/include/polyline.js
+sub decode_levels {
+    my ($class, $encoded) = @_;
+
+    my $len = length( $encoded );
+    my @levels;
+
+    for (my $index = 0; $index < $len; $index++) {
+	my $level = ord( substr( $encoded, $index, 1 ) ) - 63;
+	push @levels, $level;
+    }
+
+    return \@levels;
 }
 
 

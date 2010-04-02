@@ -42,17 +42,23 @@ use_ok( 'Geo::Google::PolylineEncoder' );
 # Test 1 - basic polyline with 3 points
 # example from http://code.google.com/apis/maps/documentation/polylinealgorithm.html
 {
-    my @points = [
+    my $points = [
 		  { lat => 38.5, lon => -120.2 }, # lvl 17
 		  { lat => 40.7, lon => -120.95 }, # lvl 16
 		  { lat => 43.252, lon => -126.453 }, # lvl 17
 		 ];
     my $encoder = Geo::Google::PolylineEncoder->new(zoom_factor => 2, num_levels => 18);
-    my $eline   = $encoder->encode( @points );
+    my $eline   = $encoder->encode( $points );
     is( $eline->{num_levels}, 18, 'ex1 num_levels' );
     is( $eline->{zoom_factor}, 2, 'ex1 zoom_factor' );
     is( $eline->{points}, '_p~iF~ps|U_ulLnnqC_mqNvxq`@', 'ex1 points' );
     is( $eline->{levels}, 'POP', 'ex1 levels' );
+
+    my $d_points = $encoder->decode_points( $eline->{points} );
+    my $d_levels = $encoder->decode_levels( $eline->{levels} );
+    is( scalar @$d_points, scalar @$d_levels, 'decode: num levels == num points' );
+    is_deeply( $d_points, $points, 'decode_points' );
+    is_deeply( $d_levels, [ 17, 16, 17 ], 'decode_levels' );
 }
 
 # Test 1a - polyline with only 2 points

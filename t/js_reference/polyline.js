@@ -1,3 +1,11 @@
+//
+// Modified version of Google's polyline utility:
+// http://code.google.com/apis/maps/documentation/polylineutility.html
+//
+// adapted to add a text-box to make it easier to encode lots of data in 1 go.
+// and slightly improved error messages.  assumes firefox with console.log.
+//
+
 var points = [];
 var marker = null;
 var highlighted_marker = null;
@@ -16,7 +24,8 @@ function addThisPoint(lat, lng, level, recenter) {
     var pLat = parseFloat(lat);
 
     if (pLat.toString() != lat) {
-	alert('Invalid latitude entered. Must be in range of -90 to 90');
+	console.log( "Warning: '" + pLat.toString() + "' != '" + lat + "'" );
+	//alert('Invalid latitude entered. Must be in range of -90 to 90');
 	return;
     }
 
@@ -28,7 +37,8 @@ function addThisPoint(lat, lng, level, recenter) {
     var pLong = parseFloat(lng);
 
     if (pLong.toString() != lng) {
-	alert('Invalid longitude entered. Must be in range of -180 to 180');
+	console.log( "Warning: '" + pLong.toString() + "' != '" + lng + "'" );
+	//alert('Invalid longitude entered. Must be in range of -180 to 180');
 	return;
     }
 
@@ -40,12 +50,13 @@ function addThisPoint(lat, lng, level, recenter) {
     var pLevel = parseInt(level);
 
     if (pLevel.toString() != level) {
-	alert('Invalid minimum level entered. Must be in range of 0 to 3');
+	console.log( "Warning: '" + pLevel.toString() + "' != '" + level + "'" );
+	//alert('Invalid minimum level entered. Must be in range of 0 to 3');
 	return;
     }
 
-    if (pLevel < 0 || pLevel > 3) {
-	alert('Invalid minimum level entered. Must be in range of 0 to 3');
+    if (pLevel < 0 || pLevel > 17) {
+	alert('Invalid minimum level entered. Must be in range of 0 to 17');
 	return;
     }
 
@@ -434,7 +445,7 @@ function decode() {
   pointsStr = "";
   for (var i = 0; i < enc_points.length; ++i) {
     createPoint(enc_points[i][0], enc_points[i][1], enc_levels[i]);
-    pointsStr += enc_points[i][0] + "," + enc_points[i][1] + "\n";
+    pointsStr += enc_points[i][0] + "," + enc_points[i][1] + "," + enc_levels[i] + "\n";
   }
 
   document.getElementById('txtPointsList').value = pointsStr;

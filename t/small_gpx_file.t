@@ -26,7 +26,7 @@ use_ok( 'Geo::Google::PolylineEncoder' );
     my @track_points;
     my $iter = $gpx->iterate_trackpoints;
     while (my $pt = $iter->()) {
-	push @track_points, $pt;
+	push @track_points, {lat => $pt->{lat}, lon => $pt->{lon}};
     }
 
     my $encoder = Geo::Google::PolylineEncoder->new(zoom_factor => 2, num_levels => 18);
@@ -35,5 +35,11 @@ use_ok( 'Geo::Google::PolylineEncoder' );
     is( $eline->{zoom_factor}, 2, 'ex3 zoom_factor' );
     is( $eline->{points}, '{w}yHtP~MbEDzAECDf@HPh@N^ZTrAB`GA|DlF]pJ_BhBa@RI|AOvDyAhFkCPG`D_@hFU`@Ub@Kh@HVfCj@fE\zCI@PbAL`@f@|@d@^ZLj@HnDoAhGQRv@?LLrBpAvHbAjAdBlCrBfFTdFvA|SlA|J@^AST~@l@IxEcB`@WCAFST[b@Y`@EJj@SP_@LSv@?j@FnA@_@Hd@HV', 'ex3 points' );
     is( $eline->{levels}, 'PF@?C@@BD?GBA?ADA?CAB@BH??AB?AF@ADCFA?AD@BE@B?FBBCBA?@BAFB@BC?BB?P', 'ex3 levels' );
+
+    my $d_points = $encoder->decode_points( $eline->{points} );
+    my $d_levels = $encoder->decode_levels( $eline->{levels} );
+    is( scalar @$d_points, scalar @$d_levels, 'decode: num levels == num points' );
+    is_deeply( $d_points, \@track_points, 'decode_points' );
+    #is_deeply( $d_levels, [ 17, 16, 17 ], 'decode_levels' );
 }
 
