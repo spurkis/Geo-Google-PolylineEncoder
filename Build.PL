@@ -35,7 +35,7 @@ my $build = Module::Build->new
 			  'IO::File'      => '0.01',
 		         },
    build_reccomends   => {
-			  'Test::Approx'  => '0.01',
+			  'Test::Approx'  => '0.03',
 			  'Geo::Gpx'      => '0.21',
 		         },
 

@@ -443,9 +443,9 @@ sub encode_signed_number {
     # We don't use floor() to avoid a dependency on POSIX
 
     # do this in a series of steps so we can see what's going on in the debugger:
-    #my $num3_5  = sprintf('%3.5f', $orig_num)+0;
-    #my $num_1e5 = $num3_5 * 1e5;
-    my $num_1e5 = $orig_num * 1e5;
+    my $num3_5  = sprintf('%.5f', $orig_num)+0;
+    my $num_1e5 = $num3_5 * 1e5;
+    #my $num_1e5 = $orig_num * 1e5;
     #my $num     = floor($num_1e5);
     my $num      = sprintf('%.0f', $num_1e5)+0; # equivalent to round()
 
