@@ -19,12 +19,26 @@ use_ok( 'Geo::Google::PolylineEncoder' );
 }
 
 # test the basic encoding functions
-# example from http://code.google.com/apis/maps/documentation/polylinealgorithm.html
 {
     my $enc = Geo::Google::PolylineEncoder->new;
+    # example from http://code.google.com/apis/maps/documentation/polylinealgorithm.html
     is( $enc->encode_number( 17 ), 'P', 'encode_number: 17' );
     is( $enc->encode_number( 174 ), 'mD', 'encode_number: 174' );
     is( $enc->encode_signed_number( -179.9832104 ), '`~oia@', 'encode_signed_number: -179.9832104' );
+
+    # this example was being encoded differently by both:
+    # 'krchI' - http://code.google.com/apis/maps/documentation/polylineutility.html
+    # 'irchI' - http://facstaff.unca.edu/mcmcclur/GoogleMaps/EncodePolyline/encodeForm.html
+    # double-checked the polyline algorithm docs, seems they changed from using
+    # floor() to using round(), so going with the first.
+    is( $enc->encode_signed_number( 53.926935 ), 'krchI', 'encode_signed_number: 53.926935' );
+
+    # trying to show that this number was encoded wrong, but it's right... ?
+    # yet it appears wrong in Test 2 below?
+    #      got: krchIwzo}@EqKa...
+    # expected: krchIwzo}@CqKa...
+    # why?
+    is( $enc->encode_signed_number( 53.92696 ), 'orchI', 'encode_signed_number: 53.92696' );
 }
 
 # Test 1 - basic polyline with 3 points
@@ -58,58 +72,41 @@ use_ok( 'Geo::Google::PolylineEncoder' );
     is( $eline->{levels}, 'PP', 'ex1 levels' );
 }
 
-# Test 2 - polyline with 10 points that kept on encoding incorrectly because I
+# Test 2 - polyline with 12 points that kept on encoding incorrectly because I
 # set escape_encoded_line => 1 by default.  This naturally screws things up...
-# To illustrate, I've included decoded (D) points from:
-#  http://facstaff.unca.edu/mcmcclur/GoogleMaps/EncodePolyline/decode.html
-# and points actually seen on the polyline (G)
 {
     my $points = [
 		  { lat => 53.926935, lon => 10.244442 },
-		  #D: 53.92694, 10.24444
-		  #G: 53.92694, 10.24444
-		  { lat => 53.92696, lon => 10.246454 },
-		  #D: 53.926970000000004, 10.246450000000001
-		  #G: 53.926970000000004, 10.246450000000001
+		  { lat => 53.926960, lon => 10.246454 },
 		  { lat => 53.927131, lon => 10.248521 },
-		  #D: 53.92714, 10.248510000000001
-		  #G: 53.92714, 10.248510000000001
 		  { lat => 53.927462, lon => 10.250555 },
-		  #D: 53.92747000000001, 10.25054
-		  #G: 53.92747000000001, 10.25054
 		  { lat => 53.928056, lon => 10.253243 },
-		  #D: 53.92806, 10.25323
-		  #G: 53.92806, 10.25323
-		  { lat => 53.928511, lon => 10.25511 },
+		  { lat => 53.928511, lon => 10.255110 }, # skipped @ default visible_threshold
 		  { lat => 53.929217, lon => 10.257998 },
-		  #D: 53.92922000000001, 10.257990000000001
-		  #G: 53.92922000000001, 10.257990000000001
 		  { lat => 53.930089, lon => 10.261353 },
-		  # ****** THINGS START DIFFERING HERE *******
-		  #D: 53.93009000000001, 10.26134
-		  #G: 53.92907, 10.25886
 		  { lat => 53.930831, lon => 10.263948 },
-		  #D: 53.93083000000001, 10.26393
-		  #G: 53.93242000000001, 10.2596
-		  { lat => 53.931672, lon => 10.266299 },
-		  { lat => 53.93273, lon => 10.269256 },
-		  #D: 53.93273000000001, 10.269240000000002
-		  #G: 53.935010000000005, 10.261500000000002
+		  { lat => 53.931672, lon => 10.266299 }, # skipped @ default visible_threshold
+		  { lat => 53.932730, lon => 10.269256 },
 		  { lat => 53.933209, lon => 10.271115 },
-		  #D: 53.93321, 10.2711
-		  #G: 53.94032000000001, 10.261980000000001
-		  #G: 53.94218000000001, 10.261970000000002
 		 ];
 
     my $encoder = Geo::Google::PolylineEncoder->new(zoom_factor => 2, num_levels => 18);
     my $eline   = $encoder->encode( $points );
     is( $eline->{num_levels}, 18, 'ex2 num_levels' );
     is( $eline->{zoom_factor}, 2, 'ex2 zoom_factor' );
-    is( $eline->{points}, 'krchIwzo}@EqKa@}KaAuKuByOgFw\\mD}SsCeO{Je`@_BsJ', 'ex2 points' );
-                          'krchIwzo}@CqKa@}KaAwKwBwOyAuJmCaQmD}SsCgOgDuMsEoQ_BsJ';
-                          'krchIwzo}@CqKa@}KaAwKwBwOyAuJmCaQmD}SsCgOgDuMsEoQ_BsJ';
+    #is( $eline->{points}, 'irchIwzo}@EqKa@}KaAuKuByOgFu\\mD_TuCeO{Je`@}AsJ', 'ex2 points' );
+    is( $eline->{points}, 'krchIwzo}@CqKa@}KaAwKwBwOgFw\\mD}SsCgO{Je`@_BsJ', 'ex2 points' ); # from google
+    is( $eline->{levels}, 'PADAEA@CBP', 'ex2 levels' );
+
+
+    $eline = $encoder->visible_threshold( 0.00000001 )->encode( $points );
+    is( $eline->{points}, 'krchIwzo}@CqKa@}KaAwKwBwOyAuJmCaQmD}SsCgOgDuMsEoQ_BsJ', 'ex2 points' ); # from google
+#                         'krchIwzo}@EqKa@}KaAuKuByOgFw\\mD}SsCeO{Je`@_BsJ', 'ex2 points' );
+#                         'krchIwzo}@CqKa@}KaAwKwBwOyAuJmCaQmD}SsCgOgDuMsEoQ_BsJ';
+#                         'krchIwzo}@CqKa@}KaAwKwBwOyAuJmCaQmD}SsCgOgDuMsEoQ_BsJ';
     is( $eline->{levels}, 'PADAEA@CBP', 'ex2 levels' );
 }
 
-
+#PADAEA@CBP
+#BBBBBBBBBBBB
 __END__

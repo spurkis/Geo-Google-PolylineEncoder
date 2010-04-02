@@ -84,9 +84,9 @@ use_ok( 'Geo::Google::PolylineEncoder' );
 
     my $encoder = Geo::Google::PolylineEncoder->new(zoom_factor => 2, num_levels => 18);
     my $eline   = $encoder->encode( @points );
-    is( $eline->{num_levels}, 18, 'RT 46337 num_levels' );
-    is( $eline->{zoom_factor}, 2, 'RT 46337 zoom_factor' );
-    is( $eline->{points}, 'qrueFdzojVYB}BSq@?Jd@CZUb@qAbAiC`@yAGgCBs@CaAEAf@o@|B@fB]tAyA[sBeACIk@Be@KUK]Mm@[YWa@g@o@a@_@I[SYi@o@e@sAbBUJ{AkD]e@MEc@^W^SLWEKYMAONi@BMNGJIh@C`BGr@_@xA}APwB\\sAGaC`@', 'RT 46337 points' );
-    is( $eline->{levels}, 'PA@D@CACD@@@FAAAFA@BB@@CA@A@@BAE@EA@F@@CA@C@@E@A@AE@AAP', 'RT 46337 levels' );
+    is( $eline->{num_levels}, 18, 'RT 46337: num_levels' );
+    is( $eline->{zoom_factor}, 2, 'RT 46337: zoom_factor' );
+    is( $eline->{points}, 'qrueFdzojVYB}BSq@?Jd@CZUb@qAbAiC`@yAGgCBs@CaAEAf@o@|B@fB]tAyA[sBeACIk@Be@KUK]Mm@[YWa@g@o@a@_@I[SYi@o@e@sAbBUJ{AkD]e@MEc@^W^SLWEKYMAONi@BMNGJIh@C`BGr@_@xA}APwB\\sAGaC`@', 'RT 46337: points' );
+    is( $eline->{levels}, 'PA@D@CACD@@@FAAAFA@BB@@CA@A@@BAE@EA@F@@CA@C@@E@A@AE@AAP', 'RT 46337: levels' );
 }
 

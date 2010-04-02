@@ -47,26 +47,6 @@ use constant defaults => {
 			 };
 our $VERSION = 0.05;
 
-# Use POSIX::floor if available, otherwise use sprintf(%8.0f ...).
-{
-    eval 'require POSIX';
-    if ($@) {
-	# Note: use sprintf() rather than int() (see perldoc -f int), though
-	# there's not much in it and the sprintf approach ends up doing more
-	# of a round() than a floor() in some cases:
-	#   floor = -30   num=-30 *int=-29  1e5=-30  %3.5f=-0.00030  orig=-0.000300000000009959
-	#   floor = 119  *num=120  int=119  1e5=120  %3.5f=0.00120   orig=0.0011999999999972
-	sub floor { sprintf('%8.0f', $_[0])+0 }
-	#warn "using sprintf as floor";
-    } else {
-	no strict 'refs';
-	no warnings;
-	*floor = \&POSIX::floor;
-	#warn "using POSIX::floor";
-    }
-}
-
-
 # The constructor
 sub new {
     my $class = shift;
@@ -342,19 +322,23 @@ sub encode_points {
     my ($last_lat, $last_lon) = (0.0, 0.0);
 
     for (my $i = 0; $i < @$points; $i++) {
-	if (defined($dists->[$i]) || $i == 0 || $i == @$points - 1) {
-	    my $point = $points->[$i];
-	    my $lat = $point->{lat};
-	    my $lon = $point->{lon};
+	my $point = $points->[$i];
+	my $lat = $point->{lat};
+	my $lon = $point->{lon};
 
-	    # compute deltas
+	if (defined($dists->[$i]) || $i == 0 || $i == @$points - 1) {
+	    # compute deltas, rounded to 5 decimal places:
+	    my $lat_e5    = sprintf('%3.5f', $lat)+0; # round()
+	    my $lon_e5    = sprintf('%3.5f', $lon)+0; # round()
 	    my $delta_lat = $lat - $last_lat;
 	    my $delta_lon = $lon - $last_lon;
-	    ($last_lat, $last_lon) = ($lat, $lon);
+	    ($last_lat, $last_lon) = ($lat_e5, $lon_e5);
 
 	    $encoded_points .=
 	      $self->encode_signed_number($delta_lat) .
 	      $self->encode_signed_number($delta_lon);
+	} else {
+	    # warn "skipping point: $lat, $lon";
 	}
     }
 
@@ -440,11 +424,14 @@ sub compute_level {
 }
 
 # Based on the official google example
+# http://code.google.com/apis/maps/documentation/include/polyline.js
 sub encode_signed_number {
     my ($self, $orig_num) = @_;
 
-    # Take the decimal value and multiply it by 1e5, flooring the result:
+    # 1. Take the initial signed value:
+    # 2. Take the decimal value and multiply it by 1e5, rounding the result:
 
+    # Note 0: I'm ignoring notes 1 & 2 to see if they're causing some weird bugs...
     # Note 1: we limit the number to 5 decimal places with sprintf to avoid
     # perl's rounding errors (they can throw the line off by a big margin sometimes)
     # From Geo::Google: use the correct floating point precision or else
@@ -459,25 +446,26 @@ sub encode_signed_number {
     # We don't use floor() to avoid a dependency on POSIX
 
     # do this in a series of steps so we can see what's going on in the debugger:
-    my $num3_5  = sprintf('%3.5f', $orig_num)+0;
-    my $num_1e5 = $num3_5 * 1e5;
-    my $num     = floor($num_1e5);
+    #my $num3_5  = sprintf('%3.5f', $orig_num)+0;
+    #my $num_1e5 = $num3_5 * 1e5;
+    my $num_1e5 = $orig_num * 1e5;
+    #my $num     = floor($num_1e5);
+    my $num      = sprintf('%.0f', $num_1e5)+0; # equivalent to round()
+
+    # RT 49327: the signedness has to be determined *after* rounding
     my $is_negative = $num < 0;
 
-    # my $int = int($num_1e5);
-    # my $floor = floor($num_1e5);
-    # warn "floor = $floor\tnum=$num\tint=$int\t1e5=$num_1e5\t%3.5f=$num3_5\torig=$orig_num\n"
-    #   if ($floor != $num or $num != $int);
+    # 3. Convert the decimal value to binary.  Note that a negative value must
+    # be calculated using its two's complement by inverting the binary value
+    # and adding one to the result.
 
-
-    # Convert the decimal value to binary.
-    # Note that a negative value must be inverted and provide padded values toward the byte boundary
     # (perl ints are already manipulatable in binary, so do nothing)
 
-    # Shift the binary value:
+    # 4. Left-shift the binary value one bit:
     $num = $num << 1;
 
-    # If the original decimal value was negative, invert this encoding:
+    # 5. If the original decimal value is negative, invert this encoding:
+    # (see note on RT 49327 above)
     if ($is_negative) {
 	$num = ~$num;
     }
@@ -486,19 +474,24 @@ sub encode_signed_number {
 }
 
 # Based on the official google example
+# http://code.google.com/apis/maps/documentation/include/polyline.js
 sub encode_number {
     my ($self, $num) = @_;
 
-    my $encodeString = "";
-    my ($nextValue, $finalValue);
+    # 6. Break the binary value out into 5-bit chunks (starting from the right hand side):
+    # 7. Place the 5-bit chunks into reverse order:
+    # 8. OR each value with 0x20 if another bit chunk follows:
+    # 9. Convert each value to decimal:
+    # 10. Add 63 to each value:
 
-    # Break the binary value out into 5-bit chunks (starting from the right hand side):
+    my $encodeString = "";
     while ($num >= 0x20) {
-	$nextValue = (0x20 | ($num & 0x1f)) + 63;
+	my $nextValue = (0x20 | ($num & 0x1f)) + 63;
 	$encodeString .= chr($nextValue);
 	$num >>= 5;
     }
-    $finalValue = $num + 63;
+
+    my $finalValue = $num + 63;
     $encodeString .= chr($finalValue);
 
     return $encodeString;
@@ -547,7 +540,7 @@ Default: 2.
 =item visible_threshold
 
 Indicates the length of a barely visible object at the highest zoom level.
-Default: 0.00001.
+Default: 0.00001.  err.. units.
 
 =item force_endpoints
 
@@ -626,7 +619,7 @@ Some encoding ideas borrowed from L<Geo::Google>.
 
 =head1 COPYRIGHT
 
-Copyright (c) 2008 Steve Purkis.
+Copyright (c) 2008-2010 Steve Purkis.
 Released under the same terms as Perl itself.
 
 =head1 SEE ALSO
