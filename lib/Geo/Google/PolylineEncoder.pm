@@ -325,10 +325,10 @@ sub encode_points {
 
 	if (defined($dists->[$i]) || $i == 0 || $i == @$points - 1) {
 	    # compute deltas, rounded to 5 decimal places:
-	    my $lat_e5    = sprintf('%3.5f', $lat)+0; # round()
-	    my $lon_e5    = sprintf('%3.5f', $lon)+0; # round()
-	    my $delta_lat = $lat - $last_lat;
-	    my $delta_lon = $lon - $last_lon;
+	    my $lat_e5    = sprintf('%.5f', $lat)+0; # round()
+	    my $lon_e5    = sprintf('%.5f', $lon)+0; # round()
+	    my $delta_lat = sprintf('%.5f', $lat_e5 - $last_lat)+0;
+	    my $delta_lon = sprintf('%.5f', $lon_e5 - $last_lon)+0;
 	    ($last_lat, $last_lon) = ($lat_e5, $lon_e5);
 
 	    $encoded_points .=
@@ -457,10 +457,10 @@ sub encode_signed_number {
 	# must be calculated using its two's complement by inverting the
 	# binary value and adding one to the result.
 
-	# Note: perl ints are already manipulatable in binary, but not always
-	# treated as signed ints - this can cause weirdness with bitwise
-	# operators... `perldoc integer` for more info.
-	use integer; # treat bitwise operands as signed
+	# Note: perl ints are already binary, but bitwise operators work on
+	# the assumption they are unsigned, ie ~$num => one's complement.
+	# if we 'use integer' bitwise operands are treated as signed:
+	use integer; # force 2's complement
 
 	# 4. Left-shift the binary value one bit:
 	$num = $num << 1;
@@ -515,7 +515,6 @@ sub decode_points {
 
     while ($index < $len) {
 	{
-	    use integer; # treat bitwise operands as signed
 	    my $b;
 	    my $shift = 0;
 	    my $result = 0;
@@ -524,7 +523,11 @@ sub decode_points {
 		$result |= ($b & 0x1f) << $shift;
 		$shift += 5;
 	    } while ($b >= 0x20);
-	    my $dlat = (($result & 1) ? ~($result >> 1) : ($result >> 1));
+	    my $dlat = $result >> 1;
+	    if ($result & 1) {
+		use integer; # force 2's complement
+		$dlat = ~$dlat;
+	    }
 	    $lat += $dlat;
 
 	    # cut-n-paste to improve performance?
@@ -535,7 +538,11 @@ sub decode_points {
 		$result |= ($b & 0x1f) << $shift;
 		$shift += 5;
 	    } while ($b >= 0x20);
-	    my $dlon = (($result & 1) ? ~($result >> 1) : ($result >> 1));
+	    my $dlon = $result >> 1;
+	    if ($result & 1) {
+		use integer; # force 2's complement
+		$dlon = ~$dlon;
+	    }
 	    $lon += $dlon;
 	}
 

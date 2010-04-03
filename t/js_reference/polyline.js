@@ -25,8 +25,6 @@ function addThisPoint(lat, lng, level, recenter) {
 
     if (pLat.toString() != lat) {
 	console.log( "Warning: '" + pLat.toString() + "' != '" + lat + "'" );
-	//alert('Invalid latitude entered. Must be in range of -90 to 90');
-	return;
     }
 
     if (pLat < -90 || pLat > 90) {
@@ -38,8 +36,6 @@ function addThisPoint(lat, lng, level, recenter) {
 
     if (pLong.toString() != lng) {
 	console.log( "Warning: '" + pLong.toString() + "' != '" + lng + "'" );
-	//alert('Invalid longitude entered. Must be in range of -180 to 180');
-	return;
     }
 
     if (pLong < -180 || pLong > 180) {
