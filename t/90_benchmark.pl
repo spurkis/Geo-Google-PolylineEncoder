@@ -43,7 +43,7 @@ my $encode_sub = sub {
 # run it 5 times, to get a fair test...
 my $count = 5;
 my $r1 = Benchmark::timethis( $count, $encode_sub );
-my $encodes_per_sec = int iters_per_sec( $r1 );
+my $encodes_per_sec = sprintf( '%.2f', iters_per_sec( $r1 ) );
 
 my $num_points = scalar @points;
 diag( "$count loops of encoding $num_points points took: ", timestr( $r1 ) );

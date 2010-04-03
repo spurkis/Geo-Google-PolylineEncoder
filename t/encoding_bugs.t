@@ -5,7 +5,6 @@ use lib 'lib';
 use lib 't/lib';
 
 use Test::More 'no_plan';
-use Test::Approx;
 
 use_ok( 'Geo::Google::PolylineEncoder' );
 
@@ -130,11 +129,16 @@ my @points =
     is( scalar @$d_points, scalar @$d_levels, 'decode: num levels == num points' );
     is( scalar @$d_points, scalar @points, 'decode: num points == orig num points' );
 
-    # compare the decoded & original points, should be only rounding diffs
-    for my $i (0 .. $#points) {
-	my ($Pa, $Pb) = ($points[$i], $d_points->[$i]);
-	is_approx_num( $Pa->{lon}, $Pb->{lon}, "d.lon[$i] =~ o.lon[$i]", 1e-5 );
-	is_approx_num( $Pa->{lat}, $Pb->{lat}, "d.lat[$i] =~ o.lat[$i]", 1e-5 );
+  SKIP: {
+	eval "use Test::Approx";
+	skip 'Test::Approx not available', scalar( @points ) * 2 if $@;
+
+	# compare the decoded & original points, should be only rounding diffs
+	for my $i (0 .. $#points) {
+	    my ($Pa, $Pb) = ($points[$i], $d_points->[$i]);
+	    is_approx_num( $Pa->{lon}, $Pb->{lon}, "d.lon[$i] =~ o.lon[$i]", 1e-5 );
+	    is_approx_num( $Pa->{lat}, $Pb->{lat}, "d.lat[$i] =~ o.lat[$i]", 1e-5 );
+	}
     }
 
 
@@ -151,15 +155,20 @@ my @points =
     is( scalar @$usng_points, scalar @$usng_levels, 'decode usng: num levels == num points' );
     is( scalar @$usng_points, scalar @points, 'decode usng: num points == orig num points' );
 
-    # compare the decoded & usng points & levels
-    for my $i (0 .. $#points) {
-	my ($Pa, $Pb) = ($usng_points->[$i], $d_points->[$i]);
-	my ($La, $Lb) = ($usng_levels->[$i], $d_levels->[$i]);
-	# should be only rounding diffs for the points:
-	is_approx_num( $Pa->{lon}, $Pb->{lon}, "d.lon[$i] =~ usng.lon[$i]", 1.1e-5 );
-	is_approx_num( $Pa->{lat}, $Pb->{lat}, "d.lat[$i] =~ usng.lat[$i]", 1.1e-5 );
-	# be a bit more flexible with the levels:
-	is_approx_int( $La, $Lb, "d.level[$i] =~ usng.level[$i]", 3 );
+  SKIP: {
+	eval "use Test::Approx";
+	skip 'Test::Approx not available', scalar( @points ) * 3 if $@;
+
+	# compare the decoded & usng points & levels
+	for my $i (0 .. $#points) {
+	    my ($Pa, $Pb) = ($usng_points->[$i], $d_points->[$i]);
+	    my ($La, $Lb) = ($usng_levels->[$i], $d_levels->[$i]);
+	    # should be only rounding diffs for the points:
+	    is_approx_num( $Pa->{lon}, $Pb->{lon}, "d.lon[$i] =~ usng.lon[$i]", 1.1e-5 );
+	    is_approx_num( $Pa->{lat}, $Pb->{lat}, "d.lat[$i] =~ usng.lat[$i]", 1.1e-5 );
+	    # be a bit more flexible with the levels:
+	    is_approx_int( $La, $Lb, "d.level[$i] =~ usng.level[$i]", 3 );
+	}
     }
 
     # with 0.1m tolerance:
