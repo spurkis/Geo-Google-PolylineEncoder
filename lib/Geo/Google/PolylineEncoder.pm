@@ -94,10 +94,13 @@ sub set_points {
     my ($self, $points) = @_;
 
     # For the moment, just stick the points we were given into $self->points:
-    return $self->points( $points );
+    #return $self->points( $points );
 
     # TODO: make a copy of the points we were given, and do some clever logic
     # ala:
+
+    # Points are stored as [lat, lon].  Although it is less readable, this
+    # is more efficient than using a hash.
     my @points;
     if (UNIVERSAL::isa($points->[0], 'HASH')) {
 	my @keys = keys %{ $points->[0] };
@@ -186,9 +189,9 @@ sub calculate_distances {
 	# Get the two points, $A & $B:
 	my ($A, $B) = ($points->[$current_0], $points->[$current_1]);
 
-	# Cache their lon/lats to avoid unneccessary hash lookups.
+	# Cache their lon/lats to avoid unneccessary array lookups.
 	# Note: we use X/Y because it's shorter, and more math-y
-	my ($Ax, $Ay, $Bx, $By) = ($A->{lon}, $A->{lat}, $B->{lon}, $B->{lat});
+	my ($Ax, $Ay, $Bx, $By) = ($A->[1], $A->[0], $B->[1], $B->[0]);
 
 	# Create a line segment between $A & $B and calculate its length
 	# Note: cache the square of the seg length for use in calcs later...
@@ -207,7 +210,7 @@ sub calculate_distances {
 
 	    # Cache its lon/lat to avoid unneccessary hash lookups.
 	    # Note: we use X/Y because it's shorter, and more math-y
-	    my ($Py, $Px) = ($P->{lat}, $P->{lon});
+	    my ($Py, $Px) = ($P->[0], $P->[1]);
 
 	    # Compute the distance between point $P and line segment [$A, $B].
 	    # Maths borrowed from Philip Nicoletti (see below).
@@ -330,8 +333,8 @@ sub encode_points {
 
     for (my $i = 0; $i < @$points; $i++) {
 	my $point = $points->[$i];
-	my $lat = $point->{lat};
-	my $lon = $point->{lon};
+	my $lat = $point->[0];
+	my $lon = $point->[1];
 
 	if (defined($dists->[$i]) || $i == 0 || $i == @$points - 1) {
 	    # compute deltas, rounded to 5 decimal places:
