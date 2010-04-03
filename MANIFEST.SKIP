@@ -3,6 +3,7 @@
 \bCVS\b
 ,v$
 \B\.svn\b
+\B\.git\b
 \B\.cvsignore$
 
 # Avoid Makemaker generated and utility files.
@@ -36,4 +37,5 @@
 #   Mac OSX SMB mount metadata files
 \B\._
 # Avoid archives of this distribution
-\bTest-Approx-[\d\.\_]+
+\bGeo-Google-PolylineEncoder-[\d\.\_]+
+^MYMETA.yml$
