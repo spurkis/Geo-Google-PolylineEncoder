@@ -7,6 +7,7 @@ Geo::Google::PolylineEncoder - encode lat/lons to Google Maps Polylines
   use Geo::Google::PolylineEncoder;
 
   my $points = [
+                # can also take points as [lat, lon]
 		{ lat => 38.5, lon => -120.2 },
 	        { lat => 40.7, lon => -120.95 },
 	        { lat => 43.252, lon => -126.453 },
@@ -36,7 +37,7 @@ use strict;
 use warnings;
 
 use accessors qw(num_levels zoom_factor visible_threshold force_endpoints
-		 zoom_level_breaks escape_encoded_points
+		 zoom_level_breaks escape_encoded_points lons_first
 		 points dists max_dist encoded_points encoded_levels );
 use constant defaults => {
 			  num_levels  => 18,
@@ -44,6 +45,7 @@ use constant defaults => {
 			  force_endpoints => 1,
 			  escape_encoded_points => 0,
 			  visible_threshold => 0.00001,
+			  lons_first => 0,
 			 };
 our $VERSION = 0.05;
 
@@ -93,14 +95,12 @@ sub reset_encoder {
 sub set_points {
     my ($self, $points) = @_;
 
-    # For the moment, just stick the points we were given into $self->points:
-    #return $self->points( $points );
+    die "points must be an arrayref!" unless UNIVERSAL::isa( $points, 'ARRAY' );
 
-    # TODO: make a copy of the points we were given, and do some clever logic
-    # ala:
+    # Internally, points are stored as [lat, lon].  Although this is less
+    # readable, it is more efficient than using a hash.
 
-    # Points are stored as [lat, lon].  Although it is less readable, this
-    # is more efficient than using a hash.
+    # Make a copy of the points we were given
     my @points;
     if (UNIVERSAL::isa($points->[0], 'HASH')) {
 	my @keys = keys %{ $points->[0] };
@@ -108,14 +108,10 @@ sub set_points {
 	my ($lon_key) = grep( /^(?:lon)|(?:lng)$/i, @keys );
 	@points = map { [$_->{$lat_key}, $_->{$lon_key}] } @$points;
     } elsif (UNIVERSAL::isa($points->[0], 'ARRAY')) {
-	if ($self->points_in_geographic_order) {
-	    while (my ($lon, $lat) = splice( @$points, 0, 2 )) {
-		push @points, [$lat, $lon];
-	    }
+	if ($self->lons_first) {
+	    @points = map {[ $_->[1], $_->[0] ]} @$points;
 	} else {
-	    while (my ($lat, $lon) = splice( @$points, 0, 2 )) {
-		push @points, [$lat, $lon];
-	    }
+	    @points = map {[ $_->[0], $_->[1] ]} @$points;
 	}
     } else {
 	die "don't know how to handle points = $points";
@@ -291,6 +287,7 @@ sub calculate_distances {
 			     ($Ax - $Px) * $By_minus_Ay) / $seg_length_squared;
 		    $dist = abs($s) * $seg_length;
 		}
+		# warn "\t$Px\t$Py\t$Ax\t$Ay\t$Bx\t$By\t$r\t$dist\n";
 	    }
 
 	    # See if this distance is the greatest for this segment so far:
@@ -441,26 +438,25 @@ sub encode_signed_number {
     # 1. Take the initial signed value:
     # 2. Take the decimal value and multiply it by 1e5, rounding the result:
 
-    # Note 0: I'm ignoring notes 1 & 2 to see if they're causing some weird bugs...
     # Note 1: we limit the number to 5 decimal places with sprintf to avoid
     # perl's rounding errors (they can throw the line off by a big margin sometimes)
     # From Geo::Google: use the correct floating point precision or else
     # 34.06694 - 34.06698 will give you -3.999999999999999057E-5 which doesn't
     # encode properly. -4E-5 encodes properly.
 
-    # Note 2: we use sprintf(%8.0f ...) rather than int() for similar reasons
+    # Note 2: we use sprintf(%.0f ...) rather than int() for similar reasons
     # (see perldoc -f int), though there's not much in it and the sprintf approach
     # ends up doing more of a round() than a floor() in some cases:
     #   floor = -30   num=-30 *int=-29  1e5=-30  %3.5f=-0.00030  orig=-0.000300000000009959
     #   floor = 119  *num=120  int=119  1e5=120  %3.5f=0.00120   orig=0.0011999999999972
-    # We don't use floor() to avoid a dependency on POSIX
+
+    # Note 3: We don't use floor() to avoid a dependency on POSIX.  And it
+    # doesn't round() anyway.
 
     # do this in a series of steps so we can see what's going on in the debugger:
-    my $num3_5  = sprintf('%.5f', $orig_num)+0;
+    my $num3_5  = sprintf('%.5f', $orig_num)+0; # round at 5 decimal places
     my $num_1e5 = $num3_5 * 1e5;
-    #my $num_1e5 = $orig_num * 1e5;
-    #my $num     = floor($num_1e5);
-    my $num      = sprintf('%.0f', $num_1e5)+0; # equivalent to round()
+    my $num      = sprintf('%.0f', $num_1e5)+0; # think int(...)
 
     # RT 49327: the signedness has to be determined *after* rounding
     my $is_negative = $num < 0;
@@ -593,8 +589,8 @@ format for use with Google Maps.  This format is described here:
 
 L<http://code.google.com/apis/maps/documentation/polylinealgorithm.html>
 
-The module is a port of Mark McClure's C<PolylineEncoder.js> with some minor
-tweaks.  The original can be found here:
+The module is a port of Mark McClure's C<PolylineEncoder.js> with some tweaks.
+The original can be found here:
 
 L<http://facstaff.unca.edu/mcmcclur/GoogleMaps/EncodePolyline/>
 
@@ -606,7 +602,7 @@ L<http://facstaff.unca.edu/mcmcclur/GoogleMaps/EncodePolyline/>
 
 Create a new encoder.  Arguments are optional and correspond to the accessor
 with the same name: L</num_levels>, L</zoom_factor>, L</visible_threshold>,
-L</force_endpoints>.
+L</force_endpoints>, etc...
 
 Note: there's nothing stopping you from setting these properties each time you
 L</encode> a polyline.
@@ -648,6 +644,28 @@ out right, but end up horribly wrong).  It may even crash your browser.
 
 Default: 0=false.
 
+=item lons_first
+
+Specifies the order in which coordinates passed as arrayrefs to L</encode> should be
+interpreted:
+
+  # false: lat, lon
+  $encoder->encode([
+     [ 38.5, -120.2 ],
+     [ 40.7, -120.95 ],
+  ]);
+
+  # true: lon, lat
+  $encoder->encode([
+     [ -120.2, 38.5 ],
+     [ -120.95, 40.7 ],
+  ]);
+
+Default: 0 = lat,lon
+
+(Yes, the default feels wrong to the mathematician in me, but that's how Google
+Maps do it, so for sake of consistency...)
+
 =back
 
 =head1 METHODS
@@ -657,16 +675,30 @@ Default: 0=false.
 =item encode( \@points );
 
 Encode the points into a string for use with Google Maps C<GPolyline.fromEncoded>
-using a variant of the Douglas-Peucker algorithm and the Polyline encoding
-algorithm defined by Google.
+using a variant of the Douglas-Peucker algorithm to set levels, and the Polyline
+encoding algorithm defined by Google.
 
-Expects a reference to a C<@points> array ala:
+Expects a reference to a C<@points> array:
 
   [
    { lat => 38.5, lon => -120.2 },
    { lat => 40.7, lon => -120.95 },
    { lat => 43.252, lon => -126.453 },
   ];
+
+The individual points can also be given as arrayrefs:
+
+  [
+   [ 38.5, -120.2 ],
+   [ 40.7, -120.95 ],
+   [ 43.252, -126.453 ],
+  ];
+
+I<Note:> I tried to avoid this initially, because there's no standard for which
+should come first: I<lat>s or I<lon>s.  But I agree, it's more convenient in
+some cases so I've given you enough rope to hang yourself...  Of course you can
+easily unhang yourself:  the order for arrayrefs defaults to C<lat, lon>, but
+you can change that by setting L</lons_first>.
 
 Returns a hashref containing:
 
@@ -680,17 +712,47 @@ Returns a hashref containing:
 You can then use the L<JSON> modules (or XML, or whatever) to pass the encoded
 values to your Javascript application for use there.
 
+=item decode_points( $encoded_polyline );
+
+Given an encoded polyline, returns the points:
+
+  [
+   { lat => 38.5, lon => -120.2 },
+   { lat => 40.7, lon => -120.95 },
+   { lat => 43.252, lon => -126.453 },
+  ];
+
+Note that these will likely be slightly different from the original points due
+to rounding errors during both L</encode> & decoding.
+
+=item decode_levels( $encoded_levels );
+
+Given encoded levels, returns the levels:
+
+  [ 17, 16, 17 ]
+
 =back
+
+=head1 WHY DO MY LINES LOOK FUNNY?
+
+Do your lines all go through the north pole?  Maybe you have your I<lon>s &
+I<lat>s mixed up...  If so and you're using point arrays, you can set
+L</lons_first>.
+
+Do your points not show up at particular zoom levels?  That's not a bug, it's a
+feature!  Try playing with L</visible_threshold>.
+
+Do your encoded lines cause your browser to crash?  Sounds like a bug - file
+it!
+
+=head1 BUGS
+
+L<https://rt.cpan.org/Dist/Display.html?Queue=Geo-Google-PolylineEncoder>
 
 =head1 TODO
 
-Benchmarking, & maybe bring distance calcs in-line as Joel Rosenberg did:
-L<http://facstaff.unca.edu/mcmcclur/GoogleMaps/EncodePolyline/gmap_polyline_encoder.rb.txt>
-
-As Lee Goddard suggests, accept points as arrays in inputs to encode(), eg:
-
- my $points = [ [$lat1, $lon1], ... ]; # like this
- my $points = [ $lat1, $lon1, $lat2, $lon2 ]; # or this
+More optimization: encoding big files is *slow*.  Maybe XS implementation if
+there's enough demand for it?
 
 =head1 AUTHOR
 
@@ -700,6 +762,9 @@ Ported from Mark McClure's C<PolylineEncoder.js> which can be found here:
 L<http://facstaff.unca.edu/mcmcclur/GoogleMaps/EncodePolyline/PolylineEncoderClass.html>
 
 Some encoding ideas borrowed from L<Geo::Google>.
+
+Bringing distance calcs in-line was Joel Rosenberg's idea:
+L<http://facstaff.unca.edu/mcmcclur/GoogleMaps/EncodePolyline/gmap_polyline_encoder.rb.txt>
 
 =head1 COPYRIGHT
 
@@ -713,6 +778,6 @@ L<http://facstaff.unca.edu/mcmcclur/GoogleMaps/EncodePolyline/PolylineEncoderCla
 (JavaScript implementation),
 L<http://www.usnaviguide.com/google-encode.htm> (similar implementation in perl),
 L<Geo::Google>,
-L<JSON>
+L<JSON::Any>
 
 =cut

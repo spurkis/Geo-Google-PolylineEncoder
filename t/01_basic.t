@@ -73,7 +73,31 @@ use_ok( 'Geo::Google::PolylineEncoder' );
     is( $eline->{num_levels}, 18, 'ex1a num_levels' );
     is( $eline->{zoom_factor}, 2, 'ex1a zoom_factor' );
     is( $eline->{points}, '_p~iF~ps|U_ulLnnqC', 'ex1a points' );
-    is( $eline->{levels}, 'PP', 'ex1 levels' );
+    is( $eline->{levels}, 'PP', 'ex1a levels' );
+}
+
+# Test 1b - arrayref as input
+{
+    my @points = [ # lat, lon
+		  [ 38.5, -120.2 ],
+		  [ 40.7, -120.95 ],
+		 ];
+    my $encoder = Geo::Google::PolylineEncoder->new(zoom_factor => 2, num_levels => 18);
+    my $eline   = $encoder->encode( @points );
+    is( $eline->{points}, '_p~iF~ps|U_ulLnnqC', 'ex1b points' );
+    is( $eline->{levels}, 'PP', 'ex1b levels' );
+}
+
+# Test 1c - arrayref as input
+{
+    my @points = [ # lat, lon
+		  [ -120.2, 38.5 ],
+		  [ -120.95, 40.7 ],
+		 ];
+    my $encoder = Geo::Google::PolylineEncoder->new(zoom_factor => 2, num_levels => 18, lons_first => 1 );
+    my $eline   = $encoder->encode( @points );
+    is( $eline->{points}, '_p~iF~ps|U_ulLnnqC', 'ex1c points' );
+    is( $eline->{levels}, 'PP', 'ex1c levels' );
 }
 
 # Test 2 - polyline with 12 points that kept on encoding incorrectly because I
