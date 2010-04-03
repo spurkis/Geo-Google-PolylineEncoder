@@ -4,13 +4,15 @@ Revision history for 'Test-Approx' Perl module
 All changes by Steve Purkis, unless otherwise noted.
 
 0.05
-    +	Use sprintf() as a round() function, floor() removed.
+    *	Use sprintf() as a round() function, floor() removed.
+    *	Fixed a bug where signed numbers were being treated as unsigned for
+	bitwise ops.
+    *	Fixed a rounding bug which caused deltas (and hence points) to be off
+	by up to 3e-5.
     +	RT #49327: applied patch to handle small negative numbers [Slaven Rezić]
     +	RT #46337: added tests, seems to have been fixed by other fixes.
 	[Reported by Joe Navratil]
     +	RT #49323, #36181: Geo::Gpx is now a build_reccomends & correct version
-    *	Fixed a bug where signed numbers were being treated as unsigned for
-	bitwise ops.
     +	Introduced decode_points() & decode_levels(), mainly for testing.
 
 0.04

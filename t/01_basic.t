@@ -80,7 +80,7 @@ use_ok( 'Geo::Google::PolylineEncoder' );
 # set escape_encoded_line => 1 by default.  This naturally screws things up...
 # Also check that visible_threshold has desired effect
 {
-    my $points = [
+    my @points = (
 		  { lat => 53.926935, lon => 10.244442 },
 		  { lat => 53.926960, lon => 10.246454 },
 		  { lat => 53.927131, lon => 10.248521 },
@@ -93,19 +93,63 @@ use_ok( 'Geo::Google::PolylineEncoder' );
 		  { lat => 53.931672, lon => 10.266299 }, # skipped @ default visible_threshold
 		  { lat => 53.932730, lon => 10.269256 },
 		  { lat => 53.933209, lon => 10.271115 },
-		 ];
+		 );
 
     my $encoder = Geo::Google::PolylineEncoder->new(zoom_factor => 2, num_levels => 18);
-    my $eline   = $encoder->encode( $points );
+    my $eline   = $encoder->encode( \@points );
     is( $eline->{num_levels}, 18, 'ex2 num_levels' );
     is( $eline->{zoom_factor}, 2, 'ex2 zoom_factor' );
-    #is( $eline->{points}, 'irchIwzo}@EqKa@}KaAuKuByOgFu\\mD_TuCeO{Je`@}AsJ', 'ex2 points' );
-    is( $eline->{points}, 'krchIwzo}@CqKa@}KaAwKwBwOgFw\\mD}SsCgO{Je`@_BsJ', 'ex2 points' ); # from google
-    is( $eline->{levels}, 'PADAEA@CBP', 'ex2 levels' );
+    is( $eline->{points}, 'krchIwzo}@CqKa@}KaAwKwBwOgFw\\mD}SsCgO{Je`@_BqJ', 'ex2 points' ); # bootstrapped
+    is( $eline->{levels}, 'PADAEA@CBP', 'ex2 levels' ); # bootstrapped
 
-    $eline = $encoder->visible_threshold( 0.00000001 )->encode( $points );
-    is( $eline->{points}, 'krchIwzo}@CqKa@}KaAwKwBwOyAuJmCaQmD}SsCgOgDuMsEoQ_BsJ', 'ex2 points' ); # from google
-    is( $eline->{levels}, 'PKMKOEKJMBLP', 'ex2 levels' );
+    my $ipeu = 'krchIwzo}@CqKa@}KaAwKwBwOgFw\\mD}SsCgO{Je`@_BsJ'; # from google
+    my $ipeu_points = $encoder->decode_points( $ipeu );
+    my $d_points = $encoder->decode_points( $eline->{points} );
+    my $d_levels = $encoder->decode_levels( $eline->{levels} );
+    is( scalar @$d_points, scalar @$d_levels, 'decode ex2: num levels == num points' );
+    is( scalar @$d_points, scalar( @points ) - 2, 'decode ex2: num points == orig num - 2' );
+    is( scalar @$d_points, scalar @$ipeu_points, 'decode ex2: num points == num ipeu points' );
+
+  SKIP: {
+	eval "use Test::Approx";
+	skip 'Test::Approx not available', scalar( @$d_points ) * 4 if $@;
+
+	# compare the decoded & ipeu points, should be only rounding diffs
+	for my $i (0 .. $#{$d_points}) {
+	    my ($Pa, $Pc) = ($d_points->[$i], $ipeu_points->[$i]);
+	    is_approx_num( $Pa->{lon}, $Pc->{lon}, "ex2: d.lon[$i] =~ ipeu.lon[$i]", 1.2e-5 );
+	    is_approx_num( $Pa->{lat}, $Pc->{lat}, "ex2: d.lat[$i] =~ ipeu.lat[$i]", 1.2e-5 );
+	}
+    }
+
+
+    # now test all points & compare
+    $eline = $encoder->visible_threshold( 0.00000001 )->encode( \@points );
+    is( $eline->{points}, 'krchIwzo}@CqKa@}KaAwKwBwOyAuJmCaQmD}SsCgOgDuMsEoQ_BqJ', 'ex2 all points' ); # bootstrapped
+    is( $eline->{levels}, 'PKMKOEKJMBLP', 'ex2 all levels' );
+
+    my $ipeu_all = 'krchIwzo}@CqKa@}KaAwKwBwOyAuJmCaQmD}SsCgOgDuMsEoQ_BsJ'; # from google
+    $ipeu_points = $encoder->decode_points( $ipeu_all );
+    $d_points = $encoder->decode_points( $eline->{points} );
+    $d_levels = $encoder->decode_levels( $eline->{levels} );
+    is( scalar @$d_points, scalar @$d_levels, 'decode ex2 all: num levels == num points' );
+    is( scalar @$d_points, scalar( @points ), 'decode ex2 all: num points == orig num' );
+    is( scalar @$d_points, scalar @$ipeu_points, 'decode ex2 all: num points == num ipeu points' );
+
+  SKIP: {
+	eval "use Test::Approx";
+	skip 'Test::Approx not available', scalar( @points ) * 4 if $@;
+
+	# compare the decoded, original & ipeu points, should be only rounding diffs
+	for my $i (0 .. $#points) {
+	    my ($Pa, $Pb, $Pc) = ($d_points->[$i], $points[$i], $ipeu_points->[$i]);
+	    is_approx_num( $Pa->{lon}, $Pb->{lon}, "ex2 all: d.lon[$i] =~ orig.lon[$i]", 1e-5 );
+	    is_approx_num( $Pa->{lat}, $Pb->{lat}, "ex2 all: d.lat[$i] =~ orig.lat[$i]", 1e-5 );
+	    is_approx_num( $Pa->{lon}, $Pc->{lon}, "ex2 all: d.lon[$i] =~ ipeu.lon[$i]", 1.2e-5 );
+	    is_approx_num( $Pa->{lat}, $Pc->{lat}, "ex2 all: d.lat[$i] =~ ipeu.lat[$i]", 1.2e-5 );
+	}
+    }
+
 }
 
 __END__
