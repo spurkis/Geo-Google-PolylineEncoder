@@ -112,7 +112,7 @@ use_ok( 'Geo::Google::PolylineEncoder' );
 
   SKIP: {
 	eval "use Test::Approx";
-	skip 'Test::Approx not available', scalar( @$d_points ) * 4 if $@;
+	skip 'Test::Approx not available', scalar( @$d_points ) * 2 if $@;
 
 	# compare the decoded & ipeu points, should be only rounding diffs
 	for my $i (0 .. $#{$d_points}) {
