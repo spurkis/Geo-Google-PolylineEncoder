@@ -118,6 +118,8 @@ sub set_points {
 	die "don't know how to handle points = $points";
     }
 
+    return $self->points( \@points );
+
     return $self;
 }
 
@@ -165,6 +167,9 @@ sub calculate_distances {
 	return $self->dists( \@dists )->max_dist( $max_dist );
     }
 
+    # cache commonly used vars:
+    my $visible_threshold = $self->visible_threshold;
+
     # Iterate through all the points, and calculate their dists
 
     # Each stack element contains the index of two points representing a line
@@ -174,8 +179,12 @@ sub calculate_distances {
     while (@stack > 0) {
 	my $current = pop @stack;
 
+	# cache to save array lookups:
+	my $current_0 = $current->[0];
+	my $current_1 = $current->[1];
+
 	# Get the two points, $A & $B:
-	my ($A, $B) = ($points->[$current->[0]], $points->[$current->[1]]);
+	my ($A, $B) = ($points->[$current_0], $points->[$current_1]);
 
 	# Cache their lon/lats to avoid unneccessary hash lookups.
 	# Note: we use X/Y because it's shorter, and more math-y
@@ -185,13 +194,14 @@ sub calculate_distances {
 	# Note: cache the square of the seg length for use in calcs later...
 	my $seg_length_squared = (($Bx - $Ax) ** 2 + ($By - $Ay) ** 2);
 	my $seg_length = sqrt($seg_length_squared);
+	my $seg_length_is_0 = $seg_length == 0; # cache
 
 	# Cache the deltas in x/y for calcs later:
 	my ($Bx_minus_Ax, $By_minus_Ay) = ($Bx - $Ax, $By - $Ay);
 
 	my $current_max_dist = 0;
 	my $current_max_dist_idx;
-	for (my $i = $current->[0] + 1; $i < $current->[1]; $i++) {
+	for (my $i = $current_0 + 1; $i < $current_1; $i++) {
 	    # Get the current point:
 	    my $P = $points->[$i];
 
@@ -213,7 +223,7 @@ sub calculate_distances {
 	    #my $dist = $self->distance($points->[$i], $A, $B, $seg_length, $seg_length_squared);
 
 	    my $dist;
-	    if ($seg_length == 0) {
+	    if ($seg_length_is_0) {
 		# The line is really just a point, so calc dist between it and $P:
 		$dist = sqrt(($By - $Py) ** 2 + ($Bx - $Px) ** 2);
 	    } else {
@@ -293,11 +303,11 @@ sub calculate_distances {
 	# If the point that had the greatest distance from the line seg is
 	# also greater than our threshold, process again using it as a new
 	# start/end point for the line.
-	if ($current_max_dist > $self->visible_threshold) {
+	if ($current_max_dist > $visible_threshold) {
 	    # store this distance - we'll use it later when creating zoom values
 	    $dists[$current_max_dist_idx] = $current_max_dist;
-	    push @stack, [$current->[0], $current_max_dist_idx];
-	    push @stack, [$current_max_dist_idx, $current->[1]];
+	    push @stack, [$current_0, $current_max_dist_idx];
+	    push @stack, [$current_max_dist_idx, $current_1];
 	}
     }
 
