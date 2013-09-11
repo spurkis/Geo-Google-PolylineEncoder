@@ -516,7 +516,7 @@ sub validate_encoded_points {
 
     return unless (defined $encoded && $encoded ne "");
 
-    my @ords = unpack "C*", $encoded;
+    my @ords = unpack "c*", $encoded;
 
     my @out  = grep { $_ < 63 || $_ > 127 } @ords;
     return if @out;
