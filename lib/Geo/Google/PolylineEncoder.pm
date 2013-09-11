@@ -47,7 +47,7 @@ use constant defaults => {
 			  visible_threshold => 0.00001,
 			  lons_first => 0,
 			 };
-our $VERSION = 0.05;
+our $VERSION = 0.06;
 
 # The constructor
 sub new {

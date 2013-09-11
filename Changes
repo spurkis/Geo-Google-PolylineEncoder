@@ -3,6 +3,7 @@ Revision history for 'Geo-Google-PolylineEncoder' Perl module
 
 All changes by Steve Purkis, unless otherwise noted.
 
+0.06
     +   Added validate_encoded_points method for superficially
         checking the encoded points string [Robert Rothenberg].
 
