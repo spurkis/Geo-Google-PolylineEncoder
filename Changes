@@ -3,6 +3,9 @@ Revision history for 'Geo-Google-PolylineEncoder' Perl module
 
 All changes by Steve Purkis, unless otherwise noted.
 
+    +   Added validate_encoded_points method for superficially
+        checking the encoded points string [Robert Rothenberg].
+
 0.05
     +	Now handles points as arrayrefs [Request by Lee Goddard].  Introduced
 	use_geographic_order() to decide whether it's lons or lats first.

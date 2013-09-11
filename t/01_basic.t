@@ -52,6 +52,7 @@ use_ok( 'Geo::Google::PolylineEncoder' );
     is( $eline->{num_levels}, 18, 'ex1 num_levels' );
     is( $eline->{zoom_factor}, 2, 'ex1 zoom_factor' );
     is( $eline->{points}, '_p~iF~ps|U_ulLnnqC_mqNvxq`@', 'ex1 points' );
+    ok( $encoder->validate_encoded_points($eline->{points}), 'ex1 validate_encoded_points' );
     is( $eline->{levels}, 'POP', 'ex1 levels' );
 
     my $d_points = $encoder->decode_points( $eline->{points} );
@@ -73,6 +74,7 @@ use_ok( 'Geo::Google::PolylineEncoder' );
     is( $eline->{num_levels}, 18, 'ex1a num_levels' );
     is( $eline->{zoom_factor}, 2, 'ex1a zoom_factor' );
     is( $eline->{points}, '_p~iF~ps|U_ulLnnqC', 'ex1a points' );
+    ok( $encoder->validate_encoded_points($eline->{points}), 'ex1a validate_encoded_points' );
     is( $eline->{levels}, 'PP', 'ex1a levels' );
 }
 
@@ -85,6 +87,7 @@ use_ok( 'Geo::Google::PolylineEncoder' );
     my $encoder = Geo::Google::PolylineEncoder->new(zoom_factor => 2, num_levels => 18);
     my $eline   = $encoder->encode( @points );
     is( $eline->{points}, '_p~iF~ps|U_ulLnnqC', 'ex1b points' );
+    ok( $encoder->validate_encoded_points($eline->{points}), 'ex1b validate_encoded_points' );
     is( $eline->{levels}, 'PP', 'ex1b levels' );
 }
 
@@ -97,6 +100,7 @@ use_ok( 'Geo::Google::PolylineEncoder' );
     my $encoder = Geo::Google::PolylineEncoder->new(zoom_factor => 2, num_levels => 18, lons_first => 1 );
     my $eline   = $encoder->encode( @points );
     is( $eline->{points}, '_p~iF~ps|U_ulLnnqC', 'ex1c points' );
+    ok( $encoder->validate_encoded_points($eline->{points}), 'ex1c validate_encoded_points' );
     is( $eline->{levels}, 'PP', 'ex1c levels' );
 }
 
@@ -124,6 +128,7 @@ use_ok( 'Geo::Google::PolylineEncoder' );
     is( $eline->{num_levels}, 18, 'ex2 num_levels' );
     is( $eline->{zoom_factor}, 2, 'ex2 zoom_factor' );
     is( $eline->{points}, 'krchIwzo}@CqKa@}KaAwKwBwOgFw\\mD}SsCgO{Je`@_BqJ', 'ex2 points' ); # bootstrapped
+    ok( $encoder->validate_encoded_points($eline->{points}), 'ex2 validate_encoded_points' );
     is( $eline->{levels}, 'PADAEA@CBP', 'ex2 levels' ); # bootstrapped
 
     my $ipeu = 'krchIwzo}@CqKa@}KaAwKwBwOgFw\\mD}SsCgO{Je`@_BsJ'; # from google
@@ -150,6 +155,7 @@ use_ok( 'Geo::Google::PolylineEncoder' );
     # now test all points & compare
     $eline = $encoder->visible_threshold( 0.00000001 )->encode( \@points );
     is( $eline->{points}, 'krchIwzo}@CqKa@}KaAwKwBwOyAuJmCaQmD}SsCgOgDuMsEoQ_BqJ', 'ex2 all points' ); # bootstrapped
+    ok( $encoder->validate_encoded_points($eline->{points}), 'ex2 validate_encoded_points' );
     is( $eline->{levels}, 'PKMKOEKJMBLP', 'ex2 all levels' );
 
     my $ipeu_all = 'krchIwzo}@CqKa@}KaAwKwBwOyAuJmCaQmD}SsCgOgDuMsEoQ_BsJ'; # from google

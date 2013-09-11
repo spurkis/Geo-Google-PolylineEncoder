@@ -255,7 +255,7 @@ sub calculate_distances {
 		#   Iy = Ay + r(By-Ay)
 		#
 		# And the distance from A to I = r*L.
-		# Use another parameter s to indicate the location along IP, with the 
+		# Use another parameter s to indicate the location along IP, with the
 		# following meaning:
 		#    s<0      P is left of AB
 		#    s>0      P is right of AB
@@ -509,6 +509,20 @@ sub encode_number {
     return $encodeString;
 }
 
+# Superficial validation of encoded points. Note that decode_points
+# does not check that points are validated before decoding.
+sub validate_encoded_points {
+    my ($class, $encoded) = @_;
+
+    return unless (defined $encoded && $encoded ne "");
+
+    my @ords = unpack "c*", $encoded;
+
+    my @out  = grep { $_ < 63 || $_ > 127 } @ords;
+    return if @out;
+
+    return 1;
+}
 
 # Decode an encoded polyline into a list of lat/lng tuples.
 # adapted from http://code.google.com/apis/maps/documentation/include/polyline.js
@@ -754,7 +768,9 @@ L<https://rt.cpan.org/Dist/Display.html?Queue=Geo-Google-PolylineEncoder>
 More optimization: encoding big files is *slow*.  Maybe XS implementation if
 there's enough demand for it?
 
-=head1 AUTHOR
+=head1 AUTHORS
+
+Robert Rothenberg <rrwo@cpan.org>
 
 Steve Purkis <spurkis@cpan.org>
 
