@@ -768,7 +768,9 @@ L<https://rt.cpan.org/Dist/Display.html?Queue=Geo-Google-PolylineEncoder>
 More optimization: encoding big files is *slow*.  Maybe XS implementation if
 there's enough demand for it?
 
-=head1 AUTHOR
+=head1 AUTHORS
+
+Robert Rothenberg <rrwo@cpan.org>
 
 Steve Purkis <spurkis@cpan.org>
 
