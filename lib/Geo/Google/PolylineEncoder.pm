@@ -578,16 +578,7 @@ sub decode_points {
 # adapted from http://code.google.com/apis/maps/documentation/include/polyline.js
 sub decode_levels {
     my ($class, $encoded) = @_;
-
-    my $len = length( $encoded );
-    my @levels;
-
-    for (my $index = 0; $index < $len; $index++) {
-	my $level = ord( substr( $encoded, $index, 1 ) ) - 63;
-	push @levels, $level;
-    }
-
-    return \@levels;
+    return [ map { $_ - 63 } unpack("c*", $encoded) ];
 }
 
 
