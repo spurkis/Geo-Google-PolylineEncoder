@@ -496,17 +496,16 @@ sub encode_number {
     # 9. Convert each value to decimal:
     # 10. Add 63 to each value:
 
-    my $encodeString = "";
+    my @codes;
+
     while ($num >= 0x20) {
-	my $nextValue = (0x20 | ($num & 0x1f)) + 63;
-	$encodeString .= chr( $nextValue );
+	push @codes, (0x20 | ($num & 0x1f)) + 63;
 	$num >>= 5;
     }
 
-    my $finalValue = $num + 63;
-    $encodeString .= chr( $finalValue );
+    push @codes, $num + 63;
 
-    return $encodeString;
+    return pack('c*', @codes);
 }
 
 # Superficial validation of encoded points. Note that decode_points
