@@ -49,6 +49,8 @@ use constant defaults => {
 			 };
 our $VERSION = 0.06;
 
+use POSIX::2008 qw/ round /;
+
 # The constructor
 sub new {
     my $class = shift;
@@ -454,9 +456,7 @@ sub encode_signed_number {
     # doesn't round() anyway.
 
     # do this in a series of steps so we can see what's going on in the debugger:
-    my $num3_5  = sprintf('%.5f', $orig_num)+0; # round at 5 decimal places
-    my $num_1e5 = $num3_5 * 1e5;
-    my $num      = sprintf('%.0f', $num_1e5)+0; # think int(...)
+    my $num = round( $orig_num * 1e5 );
 
     # RT 49327: the signedness has to be determined *after* rounding
     my $is_negative = $num < 0;
